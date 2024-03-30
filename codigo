@@ -1,0 +1,94 @@
+use std::thread;
+use std::time::Duration;
+struct Process {
+    pid: u32,
+    mem_size: u32,
+    exec_time: u32,
+}
+impl Process {
+    fn new(pid: u32, mem_size: u32, exec_time: u32) -> Process {
+        Process { pid, mem_size, exec_time }
+    }
+}
+struct ProcessStack {
+    stack: Vec<Process>,
+    last_pid: u32,
+}
+impl ProcessStack {
+    fn new() -> ProcessStack {
+        ProcessStack { stack: Vec::new(), last_pid: 0 }
+    }
+    fn push(&mut self, mem_size: u32, exec_time: u32) {
+        self.last_pid += 1;
+        let process = Process::new(self.last_pid, mem_size, exec_time);
+        self.stack.push(process);
+    }
+    fn pop(&mut self) -> Option<Process> {
+        self.stack.pop()
+    }
+    fn is_empty(&self) -> bool {
+        self.stack.is_empty()
+    }
+    fn get_summary(&self) {
+        println!("Resumo dos processos incluídos na pilha:");
+        for process in &self.stack {
+            println!("PID: {}", process.pid);
+        }
+    }
+    fn execute_process(&mut self) -> Option<Process> {
+        if let Some(process) = self.pop() {
+            println!("Iniciando execução de PID {}", process.pid);
+            println!("Processo em execução:");
+            for i in (0..process.exec_time).rev() {
+                println!("PID: {} | Tempo restante: {} segundos", process.pid, i);
+                thread::sleep(Duration::from_secs(1));
+            }
+            println!("Processo de PID {} executado com sucesso.", process.pid);
+            Some(process)
+        } else {
+            println!("Não há processos para executar.");
+            None
+        }
+    }
+}
+
+fn main() {
+    let mut process_stack = ProcessStack::new();
+    let mut input = String::new();
+    println!("Deseja incluir quantos processos à pilha?");
+    std::io::stdin().read_line(&mut input).expect("Erro");
+    let n: u32 = input.trim().parse().expect("Erro");
+    for _ in 0..n {
+        println!("Digite o tamanho da memória do processo:(em MB)");
+        let mut mem_size = String::new();
+        std::io::stdin().read_line(&mut mem_size).expect("Erro");
+        let mem_size: u32 = mem_size.trim().parse().expect("Erro");
+        let mut exec_time = 0;
+        loop {
+            println!("Digite o tempo de execução do processo em segundos (entre 30 e 90 segundos):");
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input).expect("Erro");
+            exec_time = input.trim().parse().expect("Erro");
+            if exec_time >= 30 && exec_time <= 90 {
+                break;
+            } else {
+                println!("O tempo de execução deve estar entre 30 e 90 segundos.");
+            }
+        }
+
+    }
+    let mut executed_processes = Vec::new();
+    while !process_stack.is_empty() {
+        if let Some(executed_process) = process_stack.execute_process() {
+            executed_processes.push(executed_process);
+        }
+    }
+    println!("\nResumo da execução:");
+    for process in &executed_processes {
+        println!("PID: {}", process.pid);
+    }
+    let total_mem_size: u32 = executed_processes.iter().map(|p| p.mem_size).sum();
+    let total_exec_time: u32 = executed_processes.iter().map(|p| p.exec_time).sum();
+    println!("Consumo de memória: {} MB", total_mem_size);
+    println!("Tempo gasto: {} segundos", total_exec_time);
+}
